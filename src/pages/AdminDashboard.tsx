@@ -60,9 +60,9 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       <div className="glass-card" style={{ marginTop: "2rem" }}>
-        <h3>Recent Activity</h3>
+        <h3>Behavioral Analysis</h3>
         <p style={{ color: "hsl(var(--muted-foreground))", fontSize: "0.875rem" }}>
-          Everything is running smoothly. Check the Markets tab for detailed management.
+          For future analytics features that will help admins make informed decisions based on market activity and user engagement patterns.
         </p>
       </div>
     </div>

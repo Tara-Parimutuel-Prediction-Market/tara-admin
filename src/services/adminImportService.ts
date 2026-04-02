@@ -1,4 +1,4 @@
-import type { FifaMarket } from './fifaService'
+import type { FifaMarket } from "./fifaService"
 
 export interface ImportRequest {
   title: string
@@ -7,7 +7,7 @@ export interface ImportRequest {
   opensAt?: string
   closesAt: string
   houseEdgePct?: number
-  mechanism?: 'parimutuel' | 'scpm'
+  mechanism?: "parimutuel" | "scpm"
   liquidityParam?: number
   imageUrl?: string
   externalData?: {
@@ -19,7 +19,10 @@ export interface ImportRequest {
 }
 
 class AdminImportService {
-  private readonly API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace("/admin", "")
+  private readonly API_BASE =
+    (
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/admin"
+    ).replace(/\/admin$/, "") + "/api"
 
   async importFifaMarket(fifaMarket: FifaMarket): Promise<any> {
     const token = localStorage.getItem("admin_token")
@@ -34,70 +37,75 @@ class AdminImportService {
       opensAt: new Date().toISOString(), // Open immediately
       closesAt: fifaMarket.closesAt,
       houseEdgePct: 5, // Default 5% house edge
-      mechanism: 'parimutuel', // Default mechanism
+      mechanism: "parimutuel", // Default mechanism
       liquidityParam: 1000, // Default liquidity parameter
       externalData: {
         source: fifaMarket.source,
         matchId: fifaMarket.matchData.id,
         venue: fifaMarket.matchData.venue,
-        competition: fifaMarket.matchData.competition
-      }
+        competition: fifaMarket.matchData.competition,
+      },
     }
 
     try {
       const response = await fetch(`${this.API_BASE}/admin/markets`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(importData)
+        body: JSON.stringify(importData),
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Import failed: ${response.status}`)
+        throw new Error(
+          errorData.message || `Import failed: ${response.status}`
+        )
       }
 
       const result = await response.json()
       return {
         success: true,
         market: result,
-        message: `Successfully imported "${fifaMarket.title}"`
+        message: `Successfully imported "${fifaMarket.title}"`,
       }
     } catch (error: any) {
-      console.error('Import error:', error)
+      console.error("Import error:", error)
       return {
         success: false,
         error: error.message,
-        message: `Failed to import "${fifaMarket.title}": ${error.message}`
+        message: `Failed to import "${fifaMarket.title}": ${error.message}`,
       }
     }
   }
 
   async batchImportFifaMarkets(fifaMarkets: FifaMarket[]): Promise<any[]> {
     const results = []
-    
+
     for (const market of fifaMarkets) {
       try {
         const result = await this.importFifaMarket(market)
         results.push(result)
-        
+
         // Add small delay to avoid overwhelming the API
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 500))
       } catch (error: any) {
         results.push({
           success: false,
           market: market.title,
-          error: error.message
+          error: error.message,
         })
       }
     }
-    
+
     return results
   }
 
-  validateFifaMarket(fifaMarket: FifaMarket): { valid: boolean; errors: string[] } {
+  validateFifaMarket(fifaMarket: FifaMarket): {
+    valid: boolean
+    errors: string[]
+  } {
     const errors: string[] = []
 
     if (!fifaMarket.title || fifaMarket.title.trim().length === 0) {
@@ -118,7 +126,7 @@ class AdminImportService {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     }
   }
 
@@ -129,23 +137,28 @@ class AdminImportService {
     try {
       const response = await fetch(`${this.API_BASE}/admin/markets`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-        }
+          Authorization: `Bearer ${token}`,
+        },
       })
 
       if (!response.ok) return false
 
       const existingMarkets = await response.json()
-      
+
       // Check for similar titles (same match)
-      const similarMarket = existingMarkets.find((market: any) => 
-        market.title.toLowerCase().includes(fifaMarket.matchData.homeTeam.toLowerCase()) &&
-        market.title.toLowerCase().includes(fifaMarket.matchData.awayTeam.toLowerCase())
+      const similarMarket = existingMarkets.find(
+        (market: any) =>
+          market.title
+            .toLowerCase()
+            .includes(fifaMarket.matchData.homeTeam.toLowerCase()) &&
+          market.title
+            .toLowerCase()
+            .includes(fifaMarket.matchData.awayTeam.toLowerCase())
       )
 
       return !!similarMarket
     } catch (error) {
-      console.error('Error checking duplicates:', error)
+      console.error("Error checking duplicates:", error)
       return false
     }
   }

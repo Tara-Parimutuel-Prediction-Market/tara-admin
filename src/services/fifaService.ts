@@ -1,6 +1,11 @@
-// VITE_API_BASE_URL is e.g. "http://localhost:3000/admin" — strip the /admin suffix for fixtures
-const BACKEND_URL = (import.meta.env.VITE_API_BASE_URL as string ?? "http://localhost:3000/admin")
-  .replace(/\/admin$/, "")
+// VITE_API_BASE_URL is e.g. "http://localhost:3000/admin"
+// Strip the /admin suffix, then add the NestJS global /api prefix.
+// Final base: "http://localhost:3000/api"
+const BACKEND_URL =
+  (
+    (import.meta.env.VITE_API_BASE_URL as string) ??
+    "http://localhost:3000/admin"
+  ).replace(/\/admin$/, "") + "/api"
 
 export interface FifaMatch {
   id: number
@@ -50,7 +55,7 @@ class FifaService {
   private estimateVolume(closesAt: string): string {
     const hoursUntil = (new Date(closesAt).getTime() - Date.now()) / 3_600_000
     const multiplier = hoursUntil < 24 ? 2.0 : hoursUntil < 72 ? 1.5 : 1.0
-    return `$${(1_000_000 * multiplier / 1_000_000).toFixed(1)}M`
+    return `$${((1_000_000 * multiplier) / 1_000_000).toFixed(1)}M`
   }
 }
 

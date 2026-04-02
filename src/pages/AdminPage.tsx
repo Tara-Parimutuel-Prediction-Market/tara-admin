@@ -8,12 +8,14 @@ const MarketDiscovery = lazy(() => import("./MarketDiscovery"))
 const KeeperDashboard = lazy(() => import("./KeeperDashboard"))
 const SettlementPage = lazy(() => import("./SettlementPage"))
 const PaymentLogPage = lazy(() => import("./PaymentLogPage"))
+const AuditLogPage = lazy(() => import("./AuditLogPage"))
 import { useAdminApi } from "../lib/useAdminApi"
-
 
 const AdminPage: React.FC = () => {
   const [page, setPage] = useState("dashboard")
-  const [token, setToken] = useState<string | null>(localStorage.getItem("admin_token"))
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem("admin_token")
+  )
   const [secret, setSecret] = useState("")
   const [loginError, setLoginError] = useState<string | null>(null)
   const { loginWithDevSecret } = useAdminApi(null)
@@ -37,20 +39,32 @@ const AdminPage: React.FC = () => {
 
   if (!token) {
     return (
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "center", 
-        alignItems: "center", 
-        height: "100vh",
-        background: "hsl(var(--background))"
-      }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          background: "hsl(var(--background))",
+        }}
+      >
         <div className="glass-card" style={{ width: 400, padding: 32 }}>
-          <h2 style={{ marginBottom: 24, textAlign: "center" }}>Admin Uplink</h2>
+          <h2 style={{ marginBottom: 24, textAlign: "center" }}>
+            Admin Uplink
+          </h2>
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", marginBottom: 8, fontSize: "0.875rem" }}>Dev Secret</label>
-              <input 
-                type="password" 
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: 8,
+                  fontSize: "0.875rem",
+                }}
+              >
+                Dev Secret
+              </label>
+              <input
+                type="password"
                 value={secret}
                 onChange={(e) => setSecret(e.target.value)}
                 style={{
@@ -59,13 +73,23 @@ const AdminPage: React.FC = () => {
                   borderRadius: 8,
                   border: "1px solid hsl(var(--border))",
                   background: "hsl(var(--card))",
-                  color: "hsl(var(--foreground))"
+                  color: "hsl(var(--foreground))",
                 }}
                 placeholder="Enter ADMIN_DEV_SECRET"
               />
             </div>
-            {loginError && <p style={{ color: "hsl(var(--destructive))", fontSize: "0.875rem", marginBottom: 16 }}>{loginError}</p>}
-            <button 
+            {loginError && (
+              <p
+                style={{
+                  color: "hsl(var(--destructive))",
+                  fontSize: "0.875rem",
+                  marginBottom: 16,
+                }}
+              >
+                {loginError}
+              </p>
+            )}
+            <button
               type="submit"
               className="glass-card"
               style={{
@@ -75,14 +99,22 @@ const AdminPage: React.FC = () => {
                 background: "hsl(var(--primary))",
                 color: "hsl(var(--primary-foreground))",
                 border: "none",
-                fontWeight: "bold"
+                fontWeight: "bold",
               }}
             >
               Initialize Connection
             </button>
           </form>
-          <p style={{ marginTop: 24, fontSize: "0.75rem", color: "hsl(var(--muted-foreground))", textAlign: "center" }}>
-            Refer to <code>docs/admin_auth_integration.md</code> for setup instructions.
+          <p
+            style={{
+              marginTop: 24,
+              fontSize: "0.75rem",
+              color: "hsl(var(--muted-foreground))",
+              textAlign: "center",
+            }}
+          >
+            Refer to <code>docs/admin_auth_integration.md</code> for setup
+            instructions.
           </p>
         </div>
       </div>
@@ -97,12 +129,29 @@ const AdminPage: React.FC = () => {
   else if (page === "keeper") content = <KeeperDashboard />
   else if (page === "settlements") content = <SettlementPage />
   else if (page === "payments") content = <PaymentLogPage />
+  else if (page === "audit") content = <AuditLogPage />
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      <AdminSidebar current={page} onNavigate={setPage} onLogout={handleLogout} />
+      <AdminSidebar
+        current={page}
+        onNavigate={setPage}
+        onLogout={handleLogout}
+      />
       <main style={{ flex: 1, padding: 24 }}>
-        <Suspense fallback={<div style={{ padding: 40, textAlign: "center", color: "hsl(var(--muted-foreground))" }}>Loading…</div>}>
+        <Suspense
+          fallback={
+            <div
+              style={{
+                padding: 40,
+                textAlign: "center",
+                color: "hsl(var(--muted-foreground))",
+              }}
+            >
+              Loading…
+            </div>
+          }
+        >
           {content}
         </Suspense>
       </main>
