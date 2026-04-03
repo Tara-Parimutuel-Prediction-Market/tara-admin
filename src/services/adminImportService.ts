@@ -18,13 +18,20 @@ export interface ImportRequest {
   }
 }
 
+interface ImportResult {
+  success: boolean
+  message: string
+  market?: unknown
+  error?: string
+}
+
 class AdminImportService {
   private readonly API_BASE =
     (
       import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/admin"
     ).replace(/\/admin$/, "") + "/api"
 
-  async importFifaMarket(fifaMarket: FifaMarket): Promise<any> {
+  async importFifaMarket(fifaMarket: FifaMarket): Promise<ImportResult> {
     const token = localStorage.getItem("admin_token")
     if (!token) {
       throw new Error("Admin authentication required")
@@ -70,18 +77,21 @@ class AdminImportService {
         market: result,
         message: `Successfully imported "${fifaMarket.title}"`,
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Import error:", error)
+      const msg = error instanceof Error ? error.message : String(error)
       return {
         success: false,
-        error: error.message,
-        message: `Failed to import "${fifaMarket.title}": ${error.message}`,
+        error: msg,
+        message: `Failed to import "${fifaMarket.title}": ${msg}`,
       }
     }
   }
 
-  async batchImportFifaMarkets(fifaMarkets: FifaMarket[]): Promise<any[]> {
-    const results = []
+  async batchImportFifaMarkets(
+    fifaMarkets: FifaMarket[]
+  ): Promise<ImportResult[]> {
+    const results: ImportResult[] = []
 
     for (const market of fifaMarkets) {
       try {
@@ -90,11 +100,13 @@ class AdminImportService {
 
         // Add small delay to avoid overwhelming the API
         await new Promise((resolve) => setTimeout(resolve, 500))
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error)
         results.push({
           success: false,
           market: market.title,
-          error: error.message,
+          error: msg,
+          message: `Failed to import "${market.title}": ${msg}`,
         })
       }
     }
@@ -143,11 +155,11 @@ class AdminImportService {
 
       if (!response.ok) return false
 
-      const existingMarkets = await response.json()
+      const existingMarkets = (await response.json()) as { title: string }[]
 
       // Check for similar titles (same match)
       const similarMarket = existingMarkets.find(
-        (market: any) =>
+        (market: { title: string }) =>
           market.title
             .toLowerCase()
             .includes(fifaMarket.matchData.homeTeam.toLowerCase()) &&

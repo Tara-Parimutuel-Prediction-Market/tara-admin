@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { useAdminMarkets, useAdminApi } from "../lib/useAdminApi"
 import { useRealTimeUpdates } from "../hooks/useRealTimeUpdates"
-import MarketForm from "../components/MarketForm"
+import MarketForm, { type MarketFormData } from "../components/MarketForm"
 import ResolveMarketModal from "../components/ResolveMarketModal"
 import ProposeMarketModal from "../components/ProposeMarketModal"
 import CancelMarketModal from "../components/CancelMarketModal"
@@ -19,17 +19,40 @@ import {
   XCircle,
 } from "lucide-react"
 
+interface Outcome {
+  id: string
+  label: string
+  isWinner?: boolean
+  totalBetAmount?: string | number
+}
+
+interface Market {
+  id: string
+  title: string
+  status: string
+  closesAt?: string
+  poolVolume?: string | number
+  totalPool?: string | number
+  houseEdgePct?: number
+  outcomes: Outcome[]
+}
+
+interface Dispute {
+  id: string
+  [key: string]: unknown
+}
+
 const MarketManagement: React.FC = () => {
   const token = localStorage.getItem("admin_token")
   const { markets, loading, refresh } = useAdminMarkets(token)
   const api = useAdminApi(token)
 
   const [view, setView] = useState<"list" | "create" | "edit">("list")
-  const [editingMarket, setEditingMarket] = useState<any>(null)
-  const [proposingMarket, setProposingMarket] = useState<any>(null)
-  const [resolvingMarket, setResolvingMarket] = useState<any>(null)
-  const [resolvingDisputes, setResolvingDisputes] = useState<any[]>([])
-  const [cancellingMarket, setCancellingMarket] = useState<any>(null)
+  const [editingMarket, setEditingMarket] = useState<Market | null>(null)
+  const [proposingMarket, setProposingMarket] = useState<Market | null>(null)
+  const [resolvingMarket, setResolvingMarket] = useState<Market | null>(null)
+  const [resolvingDisputes, setResolvingDisputes] = useState<Dispute[]>([])
+  const [cancellingMarket, setCancellingMarket] = useState<Market | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>("All")
   const [expandedMarket, setExpandedMarket] = useState<string | null>(null)
 
@@ -53,28 +76,36 @@ const MarketManagement: React.FC = () => {
   ]
 
   const filteredMarkets = displayMarkets.filter(
-    (m: any) =>
+    (m: Market) =>
       filterStatus === "All" || m.status === filterStatus.toLowerCase()
   )
 
-  const handleCreate = async (data: any) => {
+  const handleCreate = async (data: MarketFormData) => {
     try {
-      await api.createMarket(data)
+      await api.createMarket(data as unknown as Record<string, unknown>)
       refresh()
       setView("list")
-    } catch (e: any) {
-      alert(`Error creating market: ${e.message}`)
+    } catch (e: unknown) {
+      alert(
+        `Error creating market: ${e instanceof Error ? e.message : String(e)}`
+      )
     }
   }
 
-  const handleUpdate = async (data: any) => {
+  const handleUpdate = async (data: MarketFormData) => {
+    if (!editingMarket) return
     try {
-      await api.updateMarket(editingMarket.id, data)
+      await api.updateMarket(
+        editingMarket.id,
+        data as unknown as Record<string, unknown>
+      )
       refresh()
       setView("list")
       setEditingMarket(null)
-    } catch (e: any) {
-      alert(`Error updating market: ${e.message}`)
+    } catch (e: unknown) {
+      alert(
+        `Error updating market: ${e instanceof Error ? e.message : String(e)}`
+      )
     }
   }
 
@@ -83,8 +114,10 @@ const MarketManagement: React.FC = () => {
     try {
       await api.deleteMarket(id)
       refresh()
-    } catch (e: any) {
-      alert(`Error deleting market: ${e.message}`)
+    } catch (e: unknown) {
+      alert(
+        `Error deleting market: ${e instanceof Error ? e.message : String(e)}`
+      )
     }
   }
 
@@ -92,12 +125,15 @@ const MarketManagement: React.FC = () => {
     try {
       await api.transitionMarket(id, status)
       refresh()
-    } catch (e: any) {
-      alert(`Error transitioning market: ${e.message}`)
+    } catch (e: unknown) {
+      alert(
+        `Error transitioning market: ${e instanceof Error ? e.message : String(e)}`
+      )
     }
   }
 
   const handlePropose = async (proposedOutcomeId: string) => {
+    if (!proposingMarket) return
     try {
       await api.proposeMarket(proposingMarket.id, proposedOutcomeId)
       refresh()
@@ -105,22 +141,25 @@ const MarketManagement: React.FC = () => {
       alert(
         `Dispute window opened for "${proposingMarket.title}". Bettors have 24 hours to dispute.`
       )
-    } catch (e: any) {
-      alert(`Error proposing outcome: ${e.message}`)
+    } catch (e: unknown) {
+      alert(
+        `Error proposing outcome: ${e instanceof Error ? e.message : String(e)}`
+      )
     }
   }
 
-  const handleOpenResolve = async (market: any) => {
+  const handleOpenResolve = async (market: Market) => {
     setResolvingMarket(market)
     try {
       const disputes = await api.getMarketDisputes(market.id)
-      setResolvingDisputes(disputes)
+      setResolvingDisputes((disputes as Dispute[]) ?? [])
     } catch {
       setResolvingDisputes([])
     }
   }
 
   const handleResolve = async (winningOutcomeId: string) => {
+    if (!resolvingMarket) return
     try {
       await api.resolveMarket(resolvingMarket.id, winningOutcomeId)
       refresh()
@@ -129,8 +168,10 @@ const MarketManagement: React.FC = () => {
       alert(
         `Market "${resolvingMarket.title}" has been resolved successfully! Check the Settlements page for details.`
       )
-    } catch (e: any) {
-      alert(`Error resolving market: ${e.message}`)
+    } catch (e: unknown) {
+      alert(
+        `Error resolving market: ${e instanceof Error ? e.message : String(e)}`
+      )
     }
   }
 
@@ -143,8 +184,10 @@ const MarketManagement: React.FC = () => {
       alert(
         `Market "${cancellingMarket.title}" has been cancelled. All pending bets have been refunded.`
       )
-    } catch (e: any) {
-      alert(`Error cancelling market: ${e.message}`)
+    } catch (e: unknown) {
+      alert(
+        `Error cancelling market: ${e instanceof Error ? e.message : String(e)}`
+      )
     }
   }
 
@@ -161,7 +204,7 @@ const MarketManagement: React.FC = () => {
   if (view === "edit") {
     return (
       <MarketForm
-        initialData={editingMarket}
+        initialData={editingMarket ?? undefined}
         onSubmit={handleUpdate}
         onCancel={() => setView("list")}
         loading={api.loading}
@@ -310,7 +353,7 @@ const MarketManagement: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredMarkets.map((m: any) => (
+                filteredMarkets.map((m: Market) => (
                   <React.Fragment key={m.id}>
                     <tr>
                       <td>
@@ -321,7 +364,7 @@ const MarketManagement: React.FC = () => {
                             color: "hsl(var(--muted-foreground))",
                           }}
                         >
-                          {m.outcomes.map((o: any) => (
+                          {m.outcomes.map((o: Outcome) => (
                             <span
                               key={o.id}
                               style={{
@@ -350,7 +393,8 @@ const MarketManagement: React.FC = () => {
                         </span>
                       </td>
                       <td style={{ fontFamily: "monospace" }}>
-                        ${parseFloat(m.totalPool || 0).toLocaleString()}
+                        NU.{" "}
+                        {parseFloat(String(m.totalPool ?? 0)).toLocaleString()}
                       </td>
                       <td style={{ fontSize: "0.75rem" }}>
                         {m.closesAt
@@ -506,9 +550,17 @@ const MarketManagement: React.FC = () => {
       )}
       {cancellingMarket && (
         <CancelMarketModal
-          market={cancellingMarket}
+          market={{
+            ...cancellingMarket,
+            totalPool: cancellingMarket.totalPool ?? 0,
+            outcomes: cancellingMarket.outcomes.map((o) => ({
+              id: o.id,
+              label: o.label,
+              totalBetAmount: o.totalBetAmount ?? 0,
+            })),
+          }}
           pendingBetCount={cancellingMarket.outcomes.reduce(
-            (sum: number, o: any) =>
+            (sum: number, o: Outcome) =>
               sum + (Number(o.totalBetAmount) > 0 ? 1 : 0),
             0
           )}

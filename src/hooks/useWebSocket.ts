@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from "react"
 
 interface WebSocketMessage {
-  type: 'bet_placed' | 'market_updated' | 'pool_updated'
-  data: any
+  type: "bet_placed" | "market_updated" | "pool_updated"
+  data: Record<string, unknown>
 }
 
 export function useWebSocket(url: string) {
@@ -14,29 +14,29 @@ export function useWebSocket(url: string) {
     const connect = () => {
       try {
         ws.current = new WebSocket(url)
-        
+
         ws.current.onopen = () => {
           setIsConnected(true)
-          console.log('WebSocket connected')
+          console.log("WebSocket connected")
         }
-        
+
         ws.current.onmessage = (event) => {
           const message: WebSocketMessage = JSON.parse(event.data)
           setLastMessage(message)
         }
-        
+
         ws.current.onclose = () => {
           setIsConnected(false)
-          console.log('WebSocket disconnected')
+          console.log("WebSocket disconnected")
           // Reconnect after 3 seconds
           setTimeout(connect, 3000)
         }
-        
+
         ws.current.onerror = (error) => {
-          console.error('WebSocket error:', error)
+          console.error("WebSocket error:", error)
         }
       } catch (error) {
-        console.error('Failed to connect to WebSocket:', error)
+        console.error("Failed to connect to WebSocket:", error)
         setTimeout(connect, 3000)
       }
     }
@@ -50,7 +50,7 @@ export function useWebSocket(url: string) {
     }
   }, [url])
 
-  const sendMessage = (message: any) => {
+  const sendMessage = (message: Record<string, unknown>) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message))
     }

@@ -1,8 +1,25 @@
 import React, { useState } from "react"
 
+interface MarketOutcome {
+  id: string
+  label: string
+  totalBetAmount?: string | number
+}
+
+interface Dispute {
+  id: string
+  bondAmount?: string | number
+  reason?: string
+}
+
 interface ResolveMarketModalProps {
-  market: any
-  disputes?: any[]
+  market: {
+    id: string
+    title: string
+    proposedOutcomeId?: string
+    outcomes: MarketOutcome[]
+  }
+  disputes?: Dispute[]
   onResolve: (winningOutcomeId: string) => void
   onCancel: () => void
   loading?: boolean
@@ -15,61 +32,104 @@ const ResolveMarketModal: React.FC<ResolveMarketModalProps> = ({
   onCancel,
   loading,
 }) => {
-  const [selectedOutcomeId, setSelectedOutcomeId] = useState<string>(market.proposedOutcomeId ?? "")
+  const [selectedOutcomeId, setSelectedOutcomeId] = useState<string>(
+    market.proposedOutcomeId ?? ""
+  )
 
   return (
-    <div style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: "rgba(0,0,0,0.5)",
-      backdropFilter: "blur(4px)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000
-    }}>
-      <div className="glass-card" style={{ width: "400px", boxShadow: "0 20px 50px rgba(0,0,0,0.2)" }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "rgba(0,0,0,0.5)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        className="glass-card"
+        style={{ width: "400px", boxShadow: "0 20px 50px rgba(0,0,0,0.2)" }}
+      >
         <h3>Final Resolution</h3>
-        <p style={{ color: "hsl(var(--muted-foreground))", marginBottom: "1rem" }}>
-          <strong style={{ color: "hsl(var(--foreground))" }}>{market.title}</strong>
+        <p
+          style={{
+            color: "hsl(var(--muted-foreground))",
+            marginBottom: "1rem",
+          }}
+        >
+          <strong style={{ color: "hsl(var(--foreground))" }}>
+            {market.title}
+          </strong>
         </p>
 
         {disputes.length > 0 && (
-          <div style={{
-            background: "hsl(var(--primary) / 0.05)",
-            border: "1px solid hsl(var(--primary) / 0.2)",
-            borderRadius: "var(--radius)",
-            padding: "0.75rem 1rem",
-            marginBottom: "1.25rem"
-          }}>
-            <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "hsl(var(--primary))", marginBottom: "0.5rem" }}>
-              {disputes.length} Dispute{disputes.length !== 1 ? "s" : ""} Submitted
+          <div
+            style={{
+              background: "hsl(var(--primary) / 0.05)",
+              border: "1px solid hsl(var(--primary) / 0.2)",
+              borderRadius: "var(--radius)",
+              padding: "0.75rem 1rem",
+              marginBottom: "1.25rem",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                color: "hsl(var(--primary))",
+                marginBottom: "0.5rem",
+              }}
+            >
+              {disputes.length} Dispute{disputes.length !== 1 ? "s" : ""}{" "}
+              Submitted
             </div>
-            {disputes.map((d: any) => (
-              <div key={d.id} style={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground))", marginBottom: "0.25rem" }}>
+            {disputes.map((d: Dispute) => (
+              <div
+                key={d.id}
+                style={{
+                  fontSize: "0.75rem",
+                  color: "hsl(var(--muted-foreground))",
+                  marginBottom: "0.25rem",
+                }}
+              >
                 Bond: {Number(d.bondAmount).toLocaleString()} credits
-                {d.reason && <span style={{ opacity: 0.8 }}> — "{d.reason}"</span>}
+                {d.reason && (
+                  <span style={{ opacity: 0.8 }}> — "{d.reason}"</span>
+                )}
               </div>
             ))}
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "2rem" }}>
-          {market.outcomes.map((outcome: any) => (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+            marginBottom: "2rem",
+          }}
+        >
+          {market.outcomes.map((outcome: MarketOutcome) => (
             <label
               key={outcome.id}
               style={{
                 padding: "1rem",
                 borderRadius: "var(--radius)",
-                background: selectedOutcomeId === outcome.id ? "hsl(var(--primary) / 0.1)" : "hsl(var(--muted) / 0.2)",
+                background:
+                  selectedOutcomeId === outcome.id
+                    ? "hsl(var(--primary) / 0.1)"
+                    : "hsl(var(--muted) / 0.2)",
                 border: `1px solid ${selectedOutcomeId === outcome.id ? "hsl(var(--primary))" : "transparent"}`,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: "1rem"
+                gap: "1rem",
               }}
             >
               <input
@@ -81,18 +141,52 @@ const ResolveMarketModal: React.FC<ResolveMarketModalProps> = ({
                 style={{ accentColor: "hsl(var(--primary))" }}
               />
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "0.5rem", color: "hsl(var(--foreground))" }}>
+                <div
+                  style={{
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    color: "hsl(var(--foreground))",
+                  }}
+                >
                   {outcome.label}
                   {outcome.id === market.proposedOutcomeId && (
-                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "hsl(var(--primary))", background: "hsl(var(--primary) / 0.1)", padding: "0.1rem 0.4rem", borderRadius: 4 }}>Proposed</span>
+                    <span
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        color: "hsl(var(--primary))",
+                        background: "hsl(var(--primary) / 0.1)",
+                        padding: "0.1rem 0.4rem",
+                        borderRadius: 4,
+                      }}
+                    >
+                      Proposed
+                    </span>
                   )}
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground))" }}>
-                  Pool: {parseFloat(outcome.totalBetAmount || 0).toLocaleString()} credits
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "hsl(var(--muted-foreground))",
+                  }}
+                >
+                  Pool:{" "}
+                  {parseFloat(
+                    String(outcome.totalBetAmount ?? 0)
+                  ).toLocaleString()}{" "}
+                  credits
                 </div>
               </div>
               {selectedOutcomeId === outcome.id && (
-                <div style={{ color: "hsl(var(--primary))", fontSize: "0.875rem", fontWeight: 700 }}>
+                <div
+                  style={{
+                    color: "hsl(var(--primary))",
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                  }}
+                >
                   ✓ Selected
                 </div>
               )}
@@ -100,7 +194,9 @@ const ResolveMarketModal: React.FC<ResolveMarketModalProps> = ({
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
+        <div
+          style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}
+        >
           <button className="secondary" onClick={onCancel}>
             Cancel
           </button>
