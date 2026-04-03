@@ -139,13 +139,13 @@ const AdminPage: React.FC = () => {
   else if (page === "audit") content = <AuditLogPage />
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <AdminSidebar
         current={page}
         onNavigate={setPage}
         onLogout={handleLogout}
       />
-      <main style={{ flex: 1, padding: 24 }}>
+      <main style={{ flex: 1, padding: 24, overflowY: "auto" }}>
         <Suspense
           fallback={
             <div
