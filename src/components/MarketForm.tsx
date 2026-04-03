@@ -15,7 +15,7 @@ interface MarketInitialData {
   liquidityParam?: number
 }
 
-interface MarketFormData {
+export interface MarketFormData {
   title: string
   description: string
   outcomes: string[]
@@ -114,7 +114,7 @@ const MarketForm: React.FC<MarketFormProps> = ({
             onChange={handleChange}
             className="input-field"
             required
-            placeholder="e.g., Will BTC reach $100k?"
+            placeholder="e.g., Will BTC reach 100k NU.?"
           />
         </div>
 

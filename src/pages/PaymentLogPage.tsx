@@ -1,6 +1,29 @@
 import React, { useEffect, useState } from "react"
 import { useAdminApi } from "../lib/useAdminApi"
 
+interface PaymentUser {
+  username?: string
+  telegramUsername?: string
+  firstName?: string
+}
+
+interface Payment {
+  id: string
+  userId?: string
+  user?: PaymentUser
+  status: string
+  type: string
+  method: string
+  amount: string | number
+  currency?: string
+  createdAt: string
+  failureReason?: string
+  referenceId?: string
+  customerPhone?: string
+  externalPaymentId?: string
+  dkInquiryId?: string
+}
+
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   success: { bg: "#1a2e1a", color: "#4caf50" },
   pending: { bg: "#2e2a1a", color: "#ffb74d" },
@@ -27,7 +50,7 @@ const ALL = "all"
 const PaymentLogPage: React.FC = () => {
   const token = localStorage.getItem("admin_token")
   const { getPayments, loading, error } = useAdminApi(token)
-  const [payments, setPayments] = useState<any[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
   const [filterStatus, setFilterStatus] = useState(ALL)
   const [filterType, setFilterType] = useState(ALL)
   const [filterMethod, setFilterMethod] = useState(ALL)
@@ -36,8 +59,9 @@ const PaymentLogPage: React.FC = () => {
   useEffect(() => {
     if (!token) return
     getPayments()
-      .then(setPayments)
+      .then((data) => setPayments((data as Payment[]) || []))
       .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   const filtered = payments.filter((p) => {
@@ -100,7 +124,7 @@ const PaymentLogPage: React.FC = () => {
         <button
           onClick={() =>
             getPayments()
-              .then(setPayments)
+              .then((data) => setPayments((data as Payment[]) || []))
               .catch(() => {})
           }
           className="glass-card"
@@ -226,7 +250,7 @@ const PaymentLogPage: React.FC = () => {
           }}
         >
           {filtered.length} record{filtered.length !== 1 ? "s" : ""} · Total:{" "}
-          {totalAmount.toFixed(2)}
+          NU. {totalAmount.toFixed(2)}
         </span>
       </div>
 

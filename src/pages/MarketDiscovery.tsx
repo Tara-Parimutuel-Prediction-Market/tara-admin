@@ -3,18 +3,22 @@ import { Search, Globe, Plus, Zap, Calendar, MapPin, Clock } from "lucide-react"
 import { fifaService, type FifaMarket } from "../services/fifaService"
 import { adminImportService } from "../services/adminImportService"
 
+interface ImportResult {
+  success: boolean
+  message: string
+}
+
 const MarketDiscovery: React.FC = () => {
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const [markets, setMarkets] = useState<FifaMarket[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState<Set<string>>(new Set())
-  const [_importResults, setImportResults] = useState<Map<string, any>>(
-    new Map()
-  )
+  const [, setImportResults] = useState<Map<string, ImportResult>>(new Map())
 
   useEffect(() => {
-    fetchFifaMarkets()
+    void fetchFifaMarkets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchFifaMarkets = async () => {
@@ -23,8 +27,8 @@ const MarketDiscovery: React.FC = () => {
     try {
       const fifaMarkets = await fifaService.searchMarkets(query)
       setMarkets(fifaMarkets)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
       console.error("Error fetching FIFA markets:", err)
     } finally {
       setLoading(false)
@@ -65,10 +69,11 @@ const MarketDiscovery: React.FC = () => {
       } else {
         alert(`❌ ${result.message}`)
       }
-    } catch (err: any) {
-      const errorResult = {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      const errorResult: ImportResult = {
         success: false,
-        message: `Import failed: ${err.message}`,
+        message: `Import failed: ${msg}`,
       }
       setImportResults((prev) => new Map(prev).set(market.id, errorResult))
       alert(`❌ ${errorResult.message}`)

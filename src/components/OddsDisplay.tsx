@@ -126,7 +126,7 @@ export const OddsDisplay: React.FC<OddsDisplayProps> = ({
                     color: "hsl(var(--muted-foreground))",
                   }}
                 >
-                  $
+                  NU.{" "}
                   {(Number(outcome.totalBetAmount || 0) * finalOdds).toFixed(2)}{" "}
                   payout
                 </div>
