@@ -173,8 +173,8 @@ export function useAdminMarkets(token: string | null) {
   const refresh = useCallback(async () => {
     if (!token) return
     try {
-      const data = await getMarkets()
-      setMarkets(data as Record<string, unknown>[])
+      const res = await getMarkets()
+      setMarkets(res as Record<string, unknown>[])
     } catch {
       // Error handled by useAdminApi state
     }

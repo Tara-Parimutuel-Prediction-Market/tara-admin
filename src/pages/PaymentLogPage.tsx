@@ -59,7 +59,7 @@ const PaymentLogPage: React.FC = () => {
   useEffect(() => {
     if (!token) return
     getPayments()
-      .then((data) => setPayments((data as Payment[]) || []))
+      .then((res) => setPayments((res as Payment[]) || []))
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
@@ -124,7 +124,7 @@ const PaymentLogPage: React.FC = () => {
         <button
           onClick={() =>
             getPayments()
-              .then((data) => setPayments((data as Payment[]) || []))
+              .then((res) => setPayments((res as Payment[]) || []))
               .catch(() => {})
           }
           className="glass-card"
