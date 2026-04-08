@@ -641,7 +641,7 @@ function DateSeparator({ label, count }: { label: string; count: number }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-const PAGE_BATCH = 50
+const PAGE_SIZE = 25
 
 export function AuditLogPage() {
   const token = sessionStorage.getItem("admin_token")
@@ -664,7 +664,7 @@ export function AuditLogPage() {
   const [filterSeverity, setFilterSeverity] = useState("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
-  const [visibleCount, setVisibleCount] = useState(PAGE_BATCH)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     let cancelled = false
@@ -765,7 +765,7 @@ export function AuditLogPage() {
   ])
 
   useEffect(() => {
-    setVisibleCount(PAGE_BATCH)
+    setCurrentPage(1)
   }, [
     search,
     filterAction,
@@ -776,8 +776,11 @@ export function AuditLogPage() {
     dateTo,
   ])
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+
   const grouped = useMemo(() => {
-    const visible = filtered.slice(0, visibleCount)
+    const start = (currentPage - 1) * PAGE_SIZE
+    const visible = filtered.slice(start, start + PAGE_SIZE)
     const groups: { label: string; logs: AuditLog[] }[] = []
     let cur = ""
     const now = new Date()
@@ -802,7 +805,7 @@ export function AuditLogPage() {
       groups[groups.length - 1].logs.push(log)
     }
     return groups
-  }, [filtered, visibleCount])
+  }, [filtered, currentPage])
 
   const stats = useMemo(
     () => ({
@@ -1196,29 +1199,116 @@ export function AuditLogPage() {
             </div>
           ))}
 
-          {(visibleCount < filtered.length || logs.length < serverTotal) && (
+          {/* Pagination */}
+          {(totalPages > 1 || logs.length < serverTotal) && (
             <div
               style={{
                 display: "flex",
-                justifyContent: "center",
-                gap: 12,
+                justifyContent: "space-between",
+                alignItems: "center",
                 marginTop: "1.5rem",
                 flexWrap: "wrap" as const,
+                gap: 12,
               }}
             >
-              {visibleCount < filtered.length && (
-                <button
-                  className="secondary"
-                  style={{ fontSize: "0.82rem", padding: "8px 20px" }}
-                  onClick={() => setVisibleCount((n) => n + PAGE_BATCH)}
-                >
-                  Show more ({filtered.length - visibleCount} remaining)
-                </button>
+              {/* Page info */}
+              <span
+                style={{
+                  fontSize: "0.78rem",
+                  color: "hsl(var(--muted-foreground))",
+                }}
+              >
+                Page {currentPage} of {totalPages} &nbsp;·&nbsp;{" "}
+                {filtered.length} events
+              </span>
+
+              {/* Page buttons */}
+              {totalPages > 1 && (
+                <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                  <button
+                    className="secondary"
+                    style={{ fontSize: "0.78rem", padding: "5px 12px" }}
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(1)}
+                  >
+                    «
+                  </button>
+                  <button
+                    className="secondary"
+                    style={{ fontSize: "0.78rem", padding: "5px 12px" }}
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                  >
+                    ‹ Prev
+                  </button>
+
+                  {/* Numbered page buttons — show up to 7 around current */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (p) =>
+                        p === 1 ||
+                        p === totalPages ||
+                        Math.abs(p - currentPage) <= 2
+                    )
+                    .reduce<(number | "…")[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1)
+                        acc.push("…")
+                      acc.push(p)
+                      return acc
+                    }, [])
+                    .map((p, idx) =>
+                      p === "…" ? (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          style={{
+                            padding: "0 4px",
+                            color: "hsl(var(--muted-foreground))",
+                            fontSize: "0.78rem",
+                          }}
+                        >
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          className={p === currentPage ? "" : "secondary"}
+                          style={{
+                            fontSize: "0.78rem",
+                            padding: "5px 10px",
+                            minWidth: 32,
+                            fontWeight: p === currentPage ? 700 : 400,
+                          }}
+                          onClick={() => setCurrentPage(p as number)}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                  <button
+                    className="secondary"
+                    style={{ fontSize: "0.78rem", padding: "5px 12px" }}
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                  >
+                    Next ›
+                  </button>
+                  <button
+                    className="secondary"
+                    style={{ fontSize: "0.78rem", padding: "5px 12px" }}
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                  >
+                    »
+                  </button>
+                </div>
               )}
+
+              {/* Load more from server */}
               {logs.length < serverTotal && (
                 <button
                   className="secondary"
-                  style={{ fontSize: "0.82rem", padding: "8px 20px" }}
+                  style={{ fontSize: "0.78rem", padding: "5px 14px" }}
                   onClick={() => setLimit((l) => l + 200)}
                   disabled={loading}
                 >
