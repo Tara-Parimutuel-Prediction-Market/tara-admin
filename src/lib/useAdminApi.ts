@@ -64,7 +64,7 @@ export function useAdminApi(token: string | null) {
           body: JSON.stringify(data),
         }),
       updateMarket: (id: string, data: Record<string, unknown>) =>
-        apiFetch(`/markets/${id}`, {
+        apiFetch(`/admin/markets/${id}`, {
           method: "PATCH",
           body: JSON.stringify(data),
         }),
@@ -154,6 +154,35 @@ export function useAdminApi(token: string | null) {
         if (!response.ok) throw new Error("Invalid Secret")
         return response.json()
       },
+      // ── Tournaments ──────────────────────────────────────────────────────
+      getTournaments: () => apiFetch("/admin/tournaments"),
+      createTournament: (data: Record<string, unknown>) =>
+        apiFetch("/admin/tournaments", {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+      addNomination: (
+        tournamentId: string,
+        marketId: string,
+        targetRound: number
+      ) =>
+        apiFetch(`/admin/tournaments/${tournamentId}/nominations`, {
+          method: "POST",
+          body: JSON.stringify({ marketId, targetRound }),
+        }),
+      removeNomination: (tournamentId: string, nominationId: string) =>
+        apiFetch(
+          `/admin/tournaments/${tournamentId}/nominations/${nominationId}`,
+          { method: "DELETE" }
+        ),
+      closeNominations: (tournamentId: string) =>
+        apiFetch(`/admin/tournaments/${tournamentId}/close-nominations`, {
+          method: "POST",
+        }),
+      startTournament: (tournamentId: string) =>
+        apiFetch(`/admin/tournaments/${tournamentId}/start`, {
+          method: "POST",
+        }),
     }),
     [apiFetch]
   )

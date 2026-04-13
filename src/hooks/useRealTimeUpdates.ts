@@ -8,7 +8,7 @@ interface RealTimeUpdate {
   timestamp: number
 }
 
-interface Market {
+interface MarketBase {
   id: string
   status: string
   totalPool?: unknown
@@ -19,8 +19,8 @@ interface Market {
   [key: string]: unknown
 }
 
-export function useRealTimeUpdates(markets: Market[]) {
-  const [updatedMarkets, setUpdatedMarkets] = useState<Market[]>(markets)
+export function useRealTimeUpdates<T extends MarketBase>(markets: T[]) {
+  const [updatedMarkets, setUpdatedMarkets] = useState<T[]>(markets)
   const [lastUpdate, setLastUpdate] = useState<RealTimeUpdate | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<
     "connecting" | "connected" | "disconnected"
@@ -46,25 +46,25 @@ export function useRealTimeUpdates(markets: Market[]) {
                 ...market,
                 totalPool: update.data.newTotalPool,
                 outcomes:
-                  (update.data.updatedOutcomes as Market["outcomes"]) ||
+                  (update.data.updatedOutcomes as MarketBase["outcomes"]) ||
                   market.outcomes,
-              } as Market
+              } as T
 
             case "pool_updated":
               return {
                 ...market,
                 totalPool: update.data.totalPool,
                 outcomes:
-                  (update.data.outcomes as Market["outcomes"]) ||
+                  (update.data.outcomes as MarketBase["outcomes"]) ||
                   market.outcomes,
-              } as Market
+              } as T
 
             case "market_closed":
               return {
                 ...market,
                 status: "closed",
                 closesAt: new Date().toISOString(),
-              } as Market
+              } as T
 
             case "market_resolved":
               return {
@@ -76,7 +76,7 @@ export function useRealTimeUpdates(markets: Market[]) {
                   ...outcome,
                   isWinner: outcome.id === update.data.winningOutcomeId,
                 })),
-              } as Market
+              } as T
 
             default:
               return market

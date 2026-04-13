@@ -24,6 +24,7 @@ interface Outcome {
   label: string
   isWinner?: boolean
   totalBetAmount?: string | number
+  [key: string]: unknown
 }
 
 interface Market {
@@ -34,7 +35,9 @@ interface Market {
   poolVolume?: string | number
   totalPool?: string | number
   houseEdgePct?: number
+  category?: string | null
   outcomes: Outcome[]
+  [key: string]: unknown
 }
 
 interface Dispute {
@@ -44,7 +47,8 @@ interface Dispute {
 
 const MarketManagement: React.FC = () => {
   const token = sessionStorage.getItem("admin_token")
-  const { markets, loading, refresh } = useAdminMarkets(token)
+  const { markets: rawMarkets, loading, refresh } = useAdminMarkets(token)
+  const markets = rawMarkets as unknown as Market[]
   const api = useAdminApi(token)
 
   const [view, setView] = useState<"list" | "create" | "edit">("list")
@@ -82,7 +86,10 @@ const MarketManagement: React.FC = () => {
 
   const handleCreate = async (data: MarketFormData) => {
     try {
-      await api.createMarket(data as unknown as Record<string, unknown>)
+      await api.createMarket({
+        ...(data as unknown as Record<string, unknown>),
+        outcomes: data.outcomes.map((o) => o.label),
+      })
       refresh()
       setView("list")
     } catch (e: unknown) {
@@ -95,11 +102,15 @@ const MarketManagement: React.FC = () => {
   const handleUpdate = async (data: MarketFormData) => {
     if (!editingMarket) return
     try {
-      await api.updateMarket(
-        editingMarket.id,
-        data as unknown as Record<string, unknown>
-      )
-      refresh()
+      await api.updateMarket(editingMarket.id, {
+        ...(data as unknown as Record<string, unknown>),
+        outcomes: data.outcomes.map((o) => ({
+          id: o.id,
+          label: o.label,
+          imageUrl: o.imageUrl ?? null,
+        })),
+      })
+      await refresh()
       setView("list")
       setEditingMarket(null)
     } catch (e: unknown) {
