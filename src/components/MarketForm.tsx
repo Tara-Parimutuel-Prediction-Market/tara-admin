@@ -89,6 +89,25 @@ async function searchWikiImages(query: string): Promise<WikiImage[]> {
 
 // ── Main form component ───────────────────────────────────────────────────────
 
+/**
+ * Converts a Date to "YYYY-MM-DDTHH:MM" in the browser's LOCAL timezone,
+ * which is what <input type="datetime-local"> expects to display correctly.
+ */
+function toLocalDatetimeInput(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return (
+    date.getFullYear() +
+    "-" +
+    pad(date.getMonth() + 1) +
+    "-" +
+    pad(date.getDate()) +
+    "T" +
+    pad(date.getHours()) +
+    ":" +
+    pad(date.getMinutes())
+  )
+}
+
 const MarketForm: React.FC<MarketFormProps> = ({
   initialData,
   onSubmit,
@@ -111,10 +130,10 @@ const MarketForm: React.FC<MarketFormProps> = ({
       imageUrl?: string | null
     }[],
     opensAt: initialData?.opensAt
-      ? new Date(initialData.opensAt).toISOString().slice(0, 16)
+      ? toLocalDatetimeInput(new Date(initialData.opensAt))
       : "",
     closesAt: initialData?.closesAt
-      ? new Date(initialData.closesAt).toISOString().slice(0, 16)
+      ? toLocalDatetimeInput(new Date(initialData.closesAt))
       : "",
     houseEdgePct: initialData?.houseEdgePct || 5,
     mechanism: initialData?.mechanism || "parimutuel",
@@ -216,8 +235,15 @@ const MarketForm: React.FC<MarketFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    // datetime-local inputs give "YYYY-MM-DDTHH:MM" with NO timezone — treat as
+    // local browser time and convert to UTC ISO string so the backend stores the
+    // correct instant regardless of server timezone.
+    const toUTC = (local: string) =>
+      local ? new Date(local).toISOString() : local
     onSubmit({
       ...formData,
+      opensAt: toUTC(formData.opensAt),
+      closesAt: toUTC(formData.closesAt),
       houseEdgePct: Number(formData.houseEdgePct),
       liquidityParam: Number(formData.liquidityParam),
     })
