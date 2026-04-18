@@ -54,6 +54,8 @@ interface AdminAccuracyEntry {
   flagged: boolean
 }
 
+const PAGE_SIZE = 10
+
 const ResolutionLogPage: React.FC = () => {
   const token = sessionStorage.getItem("admin_token")
   const api = useAdminApi(token)
@@ -63,6 +65,7 @@ const ResolutionLogPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     setLoading(true)
@@ -93,6 +96,9 @@ const ResolutionLogPage: React.FC = () => {
     filterCategory === "all"
       ? entries
       : entries.filter((e) => (e.category ?? "other") === filterCategory)
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   // Stats
   const totalMarkets = entries.length
@@ -330,7 +336,10 @@ const ResolutionLogPage: React.FC = () => {
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setFilterCategory(cat)}
+              onClick={() => {
+                setFilterCategory(cat)
+                setPage(1)
+              }}
               className={filterCategory === cat ? "" : "secondary"}
               style={{
                 fontSize: "0.72rem",
@@ -382,7 +391,7 @@ const ResolutionLogPage: React.FC = () => {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        {filtered.map((entry) => {
+        {paginated.map((entry) => {
           const isExpanded = expanded === entry.id
           const catColor =
             CATEGORY_COLORS[entry.category ?? "other"] ?? CATEGORY_COLORS.other
@@ -840,6 +849,47 @@ const ResolutionLogPage: React.FC = () => {
           )
         })}
       </div>
+
+      {totalPages > 1 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "1.5rem",
+            padding: "0.75rem 0",
+            color: "hsl(var(--muted-foreground))",
+            fontSize: "0.875rem",
+          }}
+        >
+          <span>
+            Showing {(page - 1) * PAGE_SIZE + 1}–
+            {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}{" "}
+            resolutions
+          </span>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <button
+              className="secondary"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              style={{ opacity: page <= 1 ? 0.5 : 1 }}
+            >
+              Previous
+            </button>
+            <span style={{ padding: "0.5rem 0.75rem" }}>
+              {page} / {totalPages}
+            </span>
+            <button
+              className="secondary"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              style={{ opacity: page >= totalPages ? 0.5 : 1 }}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
