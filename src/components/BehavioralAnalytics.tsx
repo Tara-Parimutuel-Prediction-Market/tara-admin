@@ -4,7 +4,32 @@ import {
   MousePointerClick,
   MonitorSmartphone,
   TrendingUp,
+  BarChart2,
 } from "lucide-react"
+
+const CATEGORY_COLORS: Record<string, string> = {
+  sports: "#3b82f6",
+  politics: "#8b5cf6",
+  weather: "#06b6d4",
+  entertainment: "#f59e0b",
+  economy: "#10b981",
+  other: "#6b7280",
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  sports: "Sports",
+  politics: "Politics",
+  weather: "Weather",
+  entertainment: "Entertainment",
+  economy: "Economy",
+  other: "Other",
+}
+
+function fmtVolume(n: number): string {
+  if (n >= 1_000_000) return `Nu ${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `Nu ${(n / 1_000).toFixed(1)}K`
+  return `Nu ${Math.round(n)}`
+}
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/admin").replace(
@@ -22,6 +47,12 @@ interface Analytics {
     viewed_market: number
     opened_bet_modal: number
   }
+  categoryStats: {
+    category: string
+    bets: number
+    bettors: number
+    volume: number
+  }[]
 }
 
 const EVENT_LABELS: Record<string, string> = {
@@ -134,8 +165,13 @@ export const BehavioralAnalytics: React.FC<{ token: string | null }> = ({
       </div>
     )
 
-  const maxDau = Math.max(...data.dau.map((d) => d.dau), 1)
-  const { opened, viewed_market, opened_bet_modal } = data.conversionFunnel
+  const maxDau = Math.max(...(data.dau ?? []).map((d) => d.dau), 1)
+  const {
+    opened = 0,
+    viewed_market = 0,
+    opened_bet_modal = 0,
+  } = data.conversionFunnel ?? {}
+  const categoryStats: Analytics["categoryStats"] = data.categoryStats ?? []
 
   return (
     <div
@@ -414,6 +450,136 @@ export const BehavioralAnalytics: React.FC<{ token: string | null }> = ({
           max={opened}
           color="#f59e0b"
         />
+      </div>
+
+      {/* Category betting breakdown */}
+      <div className="glass-card">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 16,
+          }}
+        >
+          <BarChart2 size={16} color="hsl(var(--primary))" />
+          <h3 style={{ margin: 0, fontSize: "0.9rem" }}>Betting by Category</h3>
+          <span
+            style={{
+              marginLeft: "auto",
+              fontSize: "0.75rem",
+              color: "hsl(var(--muted-foreground))",
+            }}
+          >
+            Last 30 days
+          </span>
+        </div>
+        {categoryStats.length === 0 ? (
+          <p
+            style={{
+              color: "hsl(var(--muted-foreground))",
+              fontSize: "0.8rem",
+            }}
+          >
+            No bets placed yet
+          </p>
+        ) : (
+          <>
+            {/* Column headers */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 60px 60px 80px",
+                gap: 8,
+                padding: "4px 0 8px",
+                borderBottom: "1px solid hsl(var(--border))",
+                fontSize: "0.72rem",
+                color: "hsl(var(--muted-foreground))",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              <span>Category</span>
+              <span style={{ textAlign: "right" }}>Bets</span>
+              <span style={{ textAlign: "right" }}>Bettors</span>
+              <span style={{ textAlign: "right" }}>Volume</span>
+            </div>
+            {categoryStats.map(({ category, bets, bettors, volume }) => {
+              const color = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.other
+              const maxVol = Math.max(...categoryStats.map((c) => c.volume), 1)
+              const barPct = Math.round((volume / maxVol) * 100)
+              return (
+                <div key={category}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 60px 60px 80px",
+                      gap: 8,
+                      padding: "8px 0",
+                      fontSize: "0.82rem",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                    >
+                      <div
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: color,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span style={{ textTransform: "capitalize" }}>
+                        {CATEGORY_LABELS[category] ?? category}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        textAlign: "right",
+                        color: "hsl(var(--muted-foreground))",
+                      }}
+                    >
+                      {bets.toLocaleString()}
+                    </span>
+                    <span
+                      style={{
+                        textAlign: "right",
+                        color: "hsl(var(--muted-foreground))",
+                      }}
+                    >
+                      {bettors.toLocaleString()}
+                    </span>
+                    <span style={{ textAlign: "right", fontWeight: 600 }}>
+                      {fmtVolume(volume)}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: 3,
+                      borderRadius: 2,
+                      background: "hsl(var(--muted))",
+                      marginBottom: 4,
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${barPct}%`,
+                        borderRadius: 2,
+                        background: color,
+                        transition: "width 0.4s ease",
+                      }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </>
+        )}
       </div>
     </div>
   )
