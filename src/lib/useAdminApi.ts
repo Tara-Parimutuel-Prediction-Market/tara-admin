@@ -17,7 +17,7 @@ export async function loginWithDevSecret(
   const params = new URLSearchParams({ secret })
   if (totp) params.set("totp", totp)
   const response = await fetch(
-    `${API_BASE}/auth/dev/admin-token?${params.toString()}`
+    `${API_BASE}/auth/admin/login?${params.toString()}`
   )
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
