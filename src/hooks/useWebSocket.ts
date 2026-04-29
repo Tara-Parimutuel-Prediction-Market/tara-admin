@@ -9,44 +9,92 @@ export function useWebSocket(url: string) {
   const [isConnected, setIsConnected] = useState(false)
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null)
   const ws = useRef<WebSocket | null>(null)
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    let destroyed = false
+
+    const clearReconnect = () => {
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current)
+        reconnectTimer.current = null
+      }
+    }
+
+    const disconnect = () => {
+      clearReconnect()
+      if (ws.current) {
+        // Remove listeners before closing to prevent reconnect loop
+        ws.current.onclose = null
+        ws.current.onerror = null
+        ws.current.onopen = null
+        ws.current.onmessage = null
+        ws.current.close()
+        ws.current = null
+      }
+      setIsConnected(false)
+    }
+
     const connect = () => {
+      if (destroyed) return
       try {
         ws.current = new WebSocket(url)
 
         ws.current.onopen = () => {
-          setIsConnected(true)
-          console.log("WebSocket connected")
+          if (!destroyed) setIsConnected(true)
         }
 
         ws.current.onmessage = (event) => {
-          const message: WebSocketMessage = JSON.parse(event.data)
-          setLastMessage(message)
+          if (!destroyed) {
+            const message: WebSocketMessage = JSON.parse(event.data)
+            setLastMessage(message)
+          }
         }
 
         ws.current.onclose = () => {
-          setIsConnected(false)
-          console.log("WebSocket disconnected")
-          // Reconnect after 3 seconds
-          setTimeout(connect, 3000)
+          if (!destroyed) {
+            setIsConnected(false)
+            // Reconnect after 3 seconds
+            reconnectTimer.current = setTimeout(connect, 3000)
+          }
         }
 
-        ws.current.onerror = (error) => {
-          console.error("WebSocket error:", error)
+        ws.current.onerror = () => {
+          if (!destroyed) {
+            reconnectTimer.current = setTimeout(connect, 3000)
+          }
         }
-      } catch (error) {
-        console.error("Failed to connect to WebSocket:", error)
-        setTimeout(connect, 3000)
+      } catch {
+        if (!destroyed) {
+          reconnectTimer.current = setTimeout(connect, 3000)
+        }
       }
     }
+
+    // Pause WebSocket when page enters bfcache (pagehide with persisted=true)
+    // and resume when restored (pageshow with persisted=true).
+    // This avoids blocking the back/forward cache.
+    const handlePageHide = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        disconnect()
+      }
+    }
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted && !destroyed) {
+        connect()
+      }
+    }
+
+    window.addEventListener("pagehide", handlePageHide)
+    window.addEventListener("pageshow", handlePageShow)
 
     connect()
 
     return () => {
-      if (ws.current) {
-        ws.current.close()
-      }
+      destroyed = true
+      window.removeEventListener("pagehide", handlePageHide)
+      window.removeEventListener("pageshow", handlePageShow)
+      disconnect()
     }
   }, [url])
 

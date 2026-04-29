@@ -23,18 +23,40 @@ export default defineConfig({
   esbuild: {
     sourcemap: false,
     drop: ["console", "debugger"],
+    legalComments: "none",
   },
   build: {
     minify: "esbuild",
     target: "es2020",
-    chunkSizeWarningLimit: 500,
+    // Enable CSS code splitting so only the CSS needed per page is loaded
+    cssCodeSplit: true,
+    // Emit gzip-friendly output — smaller initial parse cost
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 400,
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom"],
-          "vendor-radix": ["radix-ui"],
-          "vendor-lucide": ["lucide-react"],
+        // Granular vendor splitting to improve cache hit rates and reduce
+        // initial bundle size (unused chunks are not downloaded)
+        manualChunks(id) {
+          if (id.includes("node_modules/react-dom")) return "vendor-react-dom"
+          if (id.includes("node_modules/react")) return "vendor-react"
+          if (
+            id.includes("node_modules/radix-ui") ||
+            id.includes("node_modules/@radix-ui")
+          )
+            return "vendor-radix"
+          if (id.includes("node_modules/lucide-react")) return "vendor-lucide"
+          if (id.includes("node_modules/")) return "vendor-misc"
         },
+        // Stable file names with content hashes → long-lived caching
+        entryFileNames: "assets/[name]-[hash].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash][extname]",
+      },
+      // Tree-shake anything unused
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
       },
     },
   },
