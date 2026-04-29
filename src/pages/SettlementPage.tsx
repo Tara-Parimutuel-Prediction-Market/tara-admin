@@ -326,7 +326,7 @@ const SettlementPage: React.FC = () => {
         </div>
       )}
 
-      {pages > 1 && (
+      {settlements.length > 0 && (
         <div
           style={{
             display: "flex",
