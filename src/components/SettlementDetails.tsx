@@ -39,13 +39,11 @@ interface SettlementDetailsProps {
 export const SettlementDetails: React.FC<SettlementDetailsProps> = ({
   settlement,
 }) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+  const formatCurrency = (amount: string | number | undefined) => {
+    return `Nu ${Number(amount || 0).toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount)
+    })}`
   }
 
   const calculateBreakage = () => {
