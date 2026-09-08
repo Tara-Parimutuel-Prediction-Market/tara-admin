@@ -578,6 +578,8 @@ export function useAdminApi(token: string | null) {
       // ── Market comments moderation ──────────────────────────────────────
       getComments: (params?: {
         flagged?: boolean
+        /** Free text across body, author name/username and market title. */
+        q?: string
         marketId?: string
         userId?: string
         page?: number
@@ -585,6 +587,7 @@ export function useAdminApi(token: string | null) {
       }) => {
         const qs = new URLSearchParams()
         if (params?.flagged) qs.set("flagged", "true")
+        if (params?.q?.trim()) qs.set("q", params.q.trim())
         if (params?.marketId) qs.set("marketId", params.marketId)
         if (params?.userId) qs.set("userId", params.userId)
         if (params?.page) qs.set("page", String(params.page))

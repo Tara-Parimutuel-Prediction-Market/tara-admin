@@ -3,9 +3,11 @@ import {
   Flag,
   MessageSquare,
   RefreshCw,
+  Search,
   ShieldAlert,
   Trash2,
   VolumeX,
+  X,
 } from "lucide-react"
 import { useAdminApi } from "../lib/useAdminApi"
 
@@ -56,15 +58,32 @@ export default function CommentsModerationPage() {
   const [pages, setPages] = useState(1)
   const [page, setPage] = useState(1)
   const [flaggedOnly, setFlaggedOnly] = useState(true)
+  // What is typed, and what has actually been sent. Every keystroke firing a
+  // query would hammer an unindexed ILIKE across three tables.
+  const [searchInput, setSearchInput] = useState("")
+  const [search, setSearch] = useState("")
   const [busy, setBusy] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+
+  // Debounce the box, and reset to page 1 whenever the needle changes —
+  // staying on page 7 of the old result set would show an empty list.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch((prev) => {
+        if (prev !== searchInput.trim()) setPage(1)
+        return searchInput.trim()
+      })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [searchInput])
 
   const refresh = useCallback(async () => {
     setLoadError(null)
     try {
       const res = await api.getComments({
         flagged: flaggedOnly,
+        q: search,
         page,
         limit: PAGE_SIZE,
       })
@@ -76,7 +95,7 @@ export default function CommentsModerationPage() {
     }
     // api is rebuilt each render; depending on it would loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flaggedOnly, page])
+  }, [flaggedOnly, search, page])
 
   useEffect(() => {
     void refresh()
@@ -160,13 +179,61 @@ export default function CommentsModerationPage() {
       )}
       {notice && <div style={noticeBox}>{notice}</div>}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ position: "relative", flex: "1 1 280px", minWidth: 220 }}>
+          <Search
+            size={15}
+            style={{
+              position: "absolute",
+              left: 11,
+              top: "50%",
+              transform: "translateY(-50%)",
+              opacity: 0.5,
+              pointerEvents: "none",
+            }}
+          />
+          <input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search comments, authors or markets…"
+            style={searchBox}
+          />
+          {searchInput && (
+            <button
+              onClick={() => setSearchInput("")}
+              aria-label="Clear search"
+              style={{
+                position: "absolute",
+                right: 6,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "inherit",
+                opacity: 0.55,
+                display: "flex",
+                padding: 4,
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <label
           style={{
             display: "flex",
             alignItems: "center",
             gap: 7,
             fontSize: 13,
+            whiteSpace: "nowrap",
           }}
         >
           <input
@@ -187,13 +254,15 @@ export default function CommentsModerationPage() {
       {rows.length === 0 ? (
         <div style={{ ...panel, alignItems: "center", opacity: 0.7 }}>
           <span style={{ fontSize: 13 }}>
-            {flaggedOnly
-              ? "Nothing reported. Untick “Reported only” to browse everything."
-              : "No comments yet."}
+            {search
+              ? `Nothing matches “${search}”.`
+              : flaggedOnly
+                ? "Nothing reported. Untick “Reported only” to browse everything."
+                : "No comments yet."}
           </span>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {rows.map((row) => {
             const muted =
               row.author?.commentsBlockedUntil != null &&
@@ -233,6 +302,8 @@ export default function CommentsModerationPage() {
                     {new Date(row.createdAt).toLocaleString()}
                   </span>
                 </div>
+
+                <div style={rule} />
 
                 {row.market && (
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
@@ -274,7 +345,19 @@ export default function CommentsModerationPage() {
                   </div>
                 )}
 
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {/* Actions sit on their own rule, pushed right — the reading
+                    order is the comment, then what you can do about it. */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    justifyContent: "flex-end",
+                    marginTop: 4,
+                    paddingTop: 12,
+                    borderTop: `1px solid ${rule.background}`,
+                  }}
+                >
                   {!row.deletedAt && (
                     <button
                       style={dangerButton}
@@ -342,6 +425,25 @@ const panel: React.CSSProperties = {
   borderRadius: 12,
   padding: 16,
   background: "var(--card, rgba(255,255,255,0.02))",
+}
+
+/** Hairline inside a comment card, separating its three bands. */
+const rule: React.CSSProperties = {
+  height: 1,
+  background: "rgba(148,163,184,0.18)",
+  margin: "2px 0",
+}
+
+const searchBox: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "9px 30px 9px 33px",
+  borderRadius: 9,
+  border: "1px solid var(--border, #2a2a2a)",
+  background: "var(--card, rgba(255,255,255,0.02))",
+  color: "inherit",
+  fontSize: 13,
+  outline: "none",
 }
 
 const buttonBase: React.CSSProperties = {
