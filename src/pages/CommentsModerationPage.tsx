@@ -351,75 +351,91 @@ export default function CommentsModerationPage() {
                   {row.flags.length > 0 && (
                     <div
                       style={{
-                        flex: "0 1 220px",
+                        flex: "0 1 260px",
                         minWidth: 0,
-                        borderLeft: `1px solid ${rule.background}`,
-                        paddingLeft: 14,
                       }}
                     >
                       <div style={columnLabel}>Reported for</div>
+                      {/* Pills flow across and only wrap when they run out of
+                          room — four reasons stacked one per line made a short
+                          comment three times taller than its own text. */}
                       <div
                         style={{
                           display: "flex",
-                          flexDirection: "column",
+                          flexWrap: "wrap",
                           gap: 6,
                         }}
                       >
                         {row.flags.map((f, i) => (
-                          <div key={i} style={{ fontSize: 12, minWidth: 0 }}>
-                            <span style={reasonPill}>{f.reason}</span>
-                            {f.note && (
-                              <div
-                                style={{
-                                  opacity: 0.7,
-                                  marginTop: 3,
-                                  lineHeight: 1.4,
-                                  overflowWrap: "anywhere",
-                                }}
-                              >
-                                {f.note}
-                              </div>
-                            )}
-                          </div>
+                          <span key={i} style={reasonPill}>
+                            {f.reason}
+                          </span>
                         ))}
                       </div>
+                      {/* Notes below the pills: they are free text and would
+                          break the row up if they sat inline with them. */}
+                      {row.flags.some((f) => f.note) && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 4,
+                            marginTop: 7,
+                            fontSize: 12,
+                            opacity: 0.7,
+                            lineHeight: 1.4,
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {row.flags
+                            .filter((f) => f.note)
+                            .map((f, i) => (
+                              <div key={i}>
+                                <strong style={{ textTransform: "capitalize" }}>
+                                  {f.reason}
+                                </strong>{" "}
+                                — {f.note}
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
                   <div
                     style={{
                       display: "flex",
-                      flexDirection: "column",
                       gap: 8,
                       flexShrink: 0,
                       marginLeft: "auto",
+                      alignItems: "flex-start",
                     }}
                   >
                     {!row.deletedAt && (
                       <button
-                        style={dangerButton}
+                        style={dangerAction}
                         disabled={busy === row.id}
                         onClick={() => void remove(row)}
                       >
-                        <Trash2 size={14} /> Remove
+                        <Trash2 size={13} /> Remove
                       </button>
                     )}
                     {row.author &&
                       (muted ? (
                         <button
-                          style={ghostAction}
+                          style={smallAction}
                           disabled={busy === row.id}
                           onClick={() => void unmute(row)}
                         >
-                          Lift mute
+                          Unmute
                         </button>
                       ) : (
                         <button
-                          style={ghostAction}
+                          style={smallAction}
                           disabled={busy === row.id}
                           onClick={() => void mute(row)}
                         >
-                          <VolumeX size={14} /> Mute author
+                          <VolumeX size={13} /> Mute
                         </button>
                       ))}
                   </div>
@@ -517,9 +533,32 @@ const buttonBase: React.CSSProperties = {
   color: "#fff",
 }
 
-const dangerButton: React.CSSProperties = {
-  ...buttonBase,
+/** Row-level actions: smaller than the page buttons, so two fit side by side. */
+const smallButtonBase: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+  padding: "6px 11px",
+  borderRadius: 7,
+  border: "none",
+  fontWeight: 700,
+  fontSize: 12,
+  lineHeight: 1.2,
+  whiteSpace: "nowrap",
+  cursor: "pointer",
+  color: "#fff",
+}
+
+const dangerAction: React.CSSProperties = {
+  ...smallButtonBase,
   background: "#dc2626",
+}
+
+const smallAction: React.CSSProperties = {
+  ...smallButtonBase,
+  background: "transparent",
+  border: "1px solid var(--border, #2a2a2a)",
+  color: "inherit",
 }
 
 const ghostButton: React.CSSProperties = {
