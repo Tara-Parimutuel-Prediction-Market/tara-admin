@@ -13,6 +13,7 @@ import {
   Globe2,
   LayoutDashboard,
   Lightbulb,
+  MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Scale,
@@ -257,6 +258,15 @@ const AdminSidebar: React.FC<SidebarProps> = ({
           >
             <Users size={20} />
             {!collapsed && <span className="nav-label">Users</span>}
+          </li>
+          {/* Next to Users, not under Markets: this queue is about people. */}
+          <li
+            className={current === "comments" ? "active" : ""}
+            onClick={() => onNavigate("comments")}
+            title={collapsed ? "Comments" : undefined}
+          >
+            <MessageSquare size={20} />
+            {!collapsed && <span className="nav-label">Comments</span>}
           </li>
           <li
             className={current === "keeper" ? "active" : ""}

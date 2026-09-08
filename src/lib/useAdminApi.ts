@@ -575,6 +575,36 @@ export function useAdminApi(token: string | null) {
           body: JSON.stringify({ reason }),
         }),
 
+      // ── Market comments moderation ──────────────────────────────────────
+      getComments: (params?: {
+        flagged?: boolean
+        marketId?: string
+        userId?: string
+        page?: number
+        limit?: number
+      }) => {
+        const qs = new URLSearchParams()
+        if (params?.flagged) qs.set("flagged", "true")
+        if (params?.marketId) qs.set("marketId", params.marketId)
+        if (params?.userId) qs.set("userId", params.userId)
+        if (params?.page) qs.set("page", String(params.page))
+        if (params?.limit) qs.set("limit", String(params.limit))
+        const suffix = qs.toString() ? `?${qs}` : ""
+        return apiFetch(`/admin/comments${suffix}`)
+      },
+      deleteComment: (id: string, reason: string) =>
+        apiFetch(`/admin/comments/${id}`, {
+          method: "DELETE",
+          body: JSON.stringify({ reason }),
+        }),
+      muteCommenter: (userId: string, hours: number, reason?: string) =>
+        apiFetch(`/admin/users/${userId}/comment-mute`, {
+          method: "POST",
+          body: JSON.stringify({ hours, ...(reason ? { reason } : {}) }),
+        }),
+      unmuteCommenter: (userId: string) =>
+        apiFetch(`/admin/users/${userId}/comment-mute`, { method: "DELETE" }),
+
       getAmlAlerts: (params?: {
         userId?: string
         alertType?: string
