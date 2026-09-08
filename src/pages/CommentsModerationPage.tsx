@@ -305,86 +305,124 @@ export default function CommentsModerationPage() {
 
                 <div style={rule} />
 
-                {row.market && (
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    on “{row.market.title}”
-                  </div>
-                )}
-
-                {/* Text child — React escapes it. Never innerHTML. */}
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 13.5,
-                    lineHeight: 1.5,
-                    whiteSpace: "pre-wrap",
-                    overflowWrap: "anywhere",
-                    opacity: row.deletedAt ? 0.45 : 1,
-                    textDecoration: row.deletedAt ? "line-through" : "none",
-                  }}
-                >
-                  {row.body}
-                </p>
-
-                {row.deletedReason && (
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    Removal reason: {row.deletedReason}
-                  </div>
-                )}
-
-                {row.flags.length > 0 && (
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 4 }}
-                  >
-                    {row.flags.map((f, i) => (
-                      <div key={i} style={{ fontSize: 12, opacity: 0.75 }}>
-                        <strong>{f.reason}</strong>
-                        {f.note ? ` — ${f.note}` : ""}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Actions sit on their own rule, pushed right — the reading
-                    order is the comment, then what you can do about it. */}
+                {/* Comment, reports and actions read across one row: what was
+                    said, why it was reported, and what you can do — no
+                    scrolling down past the body to reach the buttons. Wraps to
+                    stacked columns on a narrow screen. */}
                 <div
                   style={{
                     display: "flex",
-                    gap: 8,
+                    gap: 16,
+                    alignItems: "flex-start",
                     flexWrap: "wrap",
-                    justifyContent: "flex-end",
-                    marginTop: 4,
-                    paddingTop: 12,
-                    borderTop: `1px solid ${rule.background}`,
                   }}
                 >
-                  {!row.deletedAt && (
-                    <button
-                      style={dangerButton}
-                      disabled={busy === row.id}
-                      onClick={() => void remove(row)}
+                  <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+                    {row.market && (
+                      <div
+                        style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}
+                      >
+                        on “{row.market.title}”
+                      </div>
+                    )}
+
+                    {/* Text child — React escapes it. Never innerHTML. */}
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 13.5,
+                        lineHeight: 1.5,
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "anywhere",
+                        opacity: row.deletedAt ? 0.45 : 1,
+                        textDecoration: row.deletedAt ? "line-through" : "none",
+                      }}
                     >
-                      <Trash2 size={14} /> Remove
-                    </button>
+                      {row.body}
+                    </p>
+
+                    {row.deletedReason && (
+                      <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
+                        Removal reason: {row.deletedReason}
+                      </div>
+                    )}
+                  </div>
+
+                  {row.flags.length > 0 && (
+                    <div
+                      style={{
+                        flex: "0 1 220px",
+                        minWidth: 0,
+                        borderLeft: `1px solid ${rule.background}`,
+                        paddingLeft: 14,
+                      }}
+                    >
+                      <div style={columnLabel}>Reported for</div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                        }}
+                      >
+                        {row.flags.map((f, i) => (
+                          <div key={i} style={{ fontSize: 12, minWidth: 0 }}>
+                            <span style={reasonPill}>{f.reason}</span>
+                            {f.note && (
+                              <div
+                                style={{
+                                  opacity: 0.7,
+                                  marginTop: 3,
+                                  lineHeight: 1.4,
+                                  overflowWrap: "anywhere",
+                                }}
+                              >
+                                {f.note}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  {row.author &&
-                    (muted ? (
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      flexShrink: 0,
+                      marginLeft: "auto",
+                    }}
+                  >
+                    {!row.deletedAt && (
                       <button
-                        style={ghostAction}
+                        style={dangerButton}
                         disabled={busy === row.id}
-                        onClick={() => void unmute(row)}
+                        onClick={() => void remove(row)}
                       >
-                        Lift mute
+                        <Trash2 size={14} /> Remove
                       </button>
-                    ) : (
-                      <button
-                        style={ghostAction}
-                        disabled={busy === row.id}
-                        onClick={() => void mute(row)}
-                      >
-                        <VolumeX size={14} /> Mute author
-                      </button>
-                    ))}
+                    )}
+                    {row.author &&
+                      (muted ? (
+                        <button
+                          style={ghostAction}
+                          disabled={busy === row.id}
+                          onClick={() => void unmute(row)}
+                        >
+                          Lift mute
+                        </button>
+                      ) : (
+                        <button
+                          style={ghostAction}
+                          disabled={busy === row.id}
+                          onClick={() => void mute(row)}
+                        >
+                          <VolumeX size={14} /> Mute author
+                        </button>
+                      ))}
+                  </div>
                 </div>
               </div>
             )
@@ -425,6 +463,26 @@ const panel: React.CSSProperties = {
   borderRadius: 12,
   padding: 16,
   background: "var(--card, rgba(255,255,255,0.02))",
+}
+
+const columnLabel: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: "0.07em",
+  textTransform: "uppercase",
+  opacity: 0.55,
+  marginBottom: 7,
+}
+
+const reasonPill: React.CSSProperties = {
+  display: "inline-block",
+  padding: "2px 8px",
+  borderRadius: 20,
+  background: "rgba(220,38,38,0.12)",
+  border: "1px solid rgba(220,38,38,0.3)",
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: "capitalize",
 }
 
 /** Hairline inside a comment card, separating its three bands. */
