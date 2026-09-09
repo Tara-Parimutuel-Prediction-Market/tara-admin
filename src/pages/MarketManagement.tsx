@@ -210,6 +210,7 @@ const MarketManagement: React.FC = () => {
     "Resolving",
     "Resolved",
     "Settled",
+    "Refunded",
     "Cancelled",
   ]
 
