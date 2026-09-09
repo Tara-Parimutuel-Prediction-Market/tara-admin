@@ -4,6 +4,7 @@ import { TrendingUp, Activity, AlertCircle } from "lucide-react"
 import HealthCheck from "../components/HealthCheck"
 import { UserGrowth } from "../components/UserGrowth"
 import { BehavioralAnalytics } from "../components/BehavioralAnalytics"
+import { TierDistribution } from "../components/TierDistribution"
 
 const AdminDashboard: React.FC = () => {
   const token =
@@ -104,6 +105,8 @@ const AdminDashboard: React.FC = () => {
           <p>{stats.unsettledMarkets}</p>
         </div>
       </div>
+
+      <TierDistribution token={token} />
 
       <HealthCheck />
 

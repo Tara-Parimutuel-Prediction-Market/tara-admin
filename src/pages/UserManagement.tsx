@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react"
 import { useAdminApi } from "../lib/useAdminApi"
+import { TIER_ORDER, TIERS, tierLabel, tierColor } from "../lib/tiers"
 import { useToast } from "../components/Toast"
 import { UserDossier } from "../components/UserDossier"
 import {
@@ -56,6 +57,7 @@ const UserManagement: React.FC = () => {
   const [search, setSearch] = useState("") // committed after 400 ms
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all")
   const [dkFilter, setDkFilter] = useState<"all" | "linked" | "unlinked">("all")
+  const [tierFilter, setTierFilter] = useState<string>("all")
   const [sortField, setSortField] = useState<
     "name" | "balance" | "streak" | "joined"
   >("joined")
@@ -86,6 +88,7 @@ const UserManagement: React.FC = () => {
         search,
         role: roleFilter,
         dkStatus: dkFilter,
+        tier: tierFilter,
         // Ngultrum accounts only. Every column on this page comes from the DK
         // Bank rail — CID, account name, account number — and a USDT account
         // has none of them, so it appeared here as a row of dashes. Those
@@ -121,7 +124,7 @@ const UserManagement: React.FC = () => {
     return () => {
       cancelled = true
     } // cancel stale requests on fast changes
-  }, [search, roleFilter, dkFilter, sortField, sortDir, page])
+  }, [search, roleFilter, dkFilter, tierFilter, sortField, sortDir, page])
 
   // ── Debounce search input → commit after 400 ms, reset to page 1 ──────────
   useEffect(() => {
@@ -148,6 +151,7 @@ const UserManagement: React.FC = () => {
         search,
         role: roleFilter,
         dkStatus: dkFilter,
+        tier: tierFilter,
         sortField,
         sortDir,
         page,
@@ -191,7 +195,10 @@ const UserManagement: React.FC = () => {
   }
 
   const hasFilters =
-    !!search.trim() || roleFilter !== "all" || dkFilter !== "all"
+    !!search.trim() ||
+    roleFilter !== "all" ||
+    dkFilter !== "all" ||
+    tierFilter !== "all"
 
   const inputStyle: React.CSSProperties = {
     background: "hsl(var(--background))",
@@ -293,6 +300,24 @@ const UserManagement: React.FC = () => {
           <option value="linked">DK Linked</option>
           <option value="unlinked">Not Linked</option>
         </select>
+        {/* Reputation rung. Note Rookie is also the column default for an
+            account that has never predicted, so it returns far more people
+            than the other rungs — the overview separates the two counts. */}
+        <select
+          value={tierFilter}
+          onChange={(e) => {
+            setTierFilter(e.target.value)
+            setPage(1)
+          }}
+          style={inputStyle}
+        >
+          <option value="all">All Tiers</option>
+          {TIER_ORDER.map((t) => (
+            <option key={t} value={t}>
+              {TIERS[t].label}
+            </option>
+          ))}
+        </select>
         {/* Sort */}
         <select
           value={sortField}
@@ -331,6 +356,7 @@ const UserManagement: React.FC = () => {
               setSearch("")
               setRoleFilter("all")
               setDkFilter("all")
+              setTierFilter("all")
               setPage(1)
             }}
             className="secondary"
@@ -638,21 +664,17 @@ const UserManagement: React.FC = () => {
                           {user.isAdmin ? "ADMIN" : "USER"}
                         </span>
                         <span
+                          title={
+                            TIERS[user.reputationTier]?.requirement ??
+                            "Not a rung the current ladder defines"
+                          }
                           style={{
                             fontWeight: 600,
                             fontSize: "0.75rem",
-                            textTransform: "capitalize",
-                            color:
-                              user.reputationTier === "expert"
-                                ? "hsl(var(--primary))"
-                                : user.reputationTier === "reliable"
-                                  ? "#16a34a"
-                                  : user.reputationTier === "regular"
-                                    ? "#d97706"
-                                    : "hsl(var(--muted-foreground))",
+                            color: tierColor(user.reputationTier),
                           }}
                         >
-                          {user.reputationTier ?? "newcomer"}
+                          {tierLabel(user.reputationTier)}
                         </span>
                       </div>
                     </td>

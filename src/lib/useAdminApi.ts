@@ -317,6 +317,8 @@ export function useAdminApi(token: string | null) {
         search?: string
         role?: "all" | "admin" | "user"
         dkStatus?: "all" | "linked" | "unlinked"
+        /** Reputation rung, e.g. "scout". "all" clears the filter. */
+        tier?: string
         sortField?: "name" | "balance" | "streak" | "joined"
         sortDir?: "asc" | "desc"
         page?: number
@@ -329,6 +331,7 @@ export function useAdminApi(token: string | null) {
         if (params?.role && params.role !== "all") qs.set("role", params.role)
         if (params?.dkStatus && params.dkStatus !== "all")
           qs.set("dkStatus", params.dkStatus)
+        if (params?.tier && params.tier !== "all") qs.set("tier", params.tier)
         if (params?.sortField) qs.set("sortField", params.sortField)
         if (params?.sortDir) qs.set("sortDir", params.sortDir)
         if (params?.page) qs.set("page", String(params.page))
@@ -336,6 +339,22 @@ export function useAdminApi(token: string | null) {
         const suffix = qs.toString() ? `?${qs.toString()}` : ""
         return apiFetch(`/admin/users${suffix}`)
       },
+      /**
+       * Headcount per reputation rung. `count` is every account on that rung;
+       * `ranked` is those with at least one resolved prediction. They differ
+       * most at Rookie, which is the default for a brand-new account.
+       */
+      getUserTierDistribution: () =>
+        apiFetch(`/admin/users/tier-distribution`) as Promise<{
+          distribution: {
+            tier: string
+            label: string
+            count: number
+            ranked: number
+          }[]
+          total: number
+          totalRanked: number
+        }>,
       getAuditLogs: (params?: {
         page?: number
         limit?: number
