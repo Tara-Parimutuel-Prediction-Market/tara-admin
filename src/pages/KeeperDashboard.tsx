@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Zap,
   Clock,
+  CalendarDays,
   BarChart2,
 } from "lucide-react"
 import { useToast } from "../components/Toast"
@@ -455,6 +456,58 @@ const KeeperDashboard: React.FC = () => {
                 disabled={triggering === "liquidity"}
               >
                 {triggering === "liquidity" ? "…" : "Run Now"}
+              </button>
+            </div>
+
+            {/* Not on a cron: the keeper stamps the round when it creates a
+                fixture market, so this only matters for markets made before
+                that shipped. Re-running it is a no-op once they all carry
+                one. */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "0.85rem",
+                borderRadius: "10px",
+                background: "hsl(var(--secondary) / 0.5)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                }}
+              >
+                <CalendarDays size={20} color="#0ea5e9" />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+                    Gameweek Backfill
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.72rem",
+                      color: "hsl(var(--muted-foreground))",
+                    }}
+                  >
+                    Labels EPL/UCL fixtures with their round · manual, safe to
+                    re-run
+                  </div>
+                </div>
+              </div>
+              <button
+                className="secondary"
+                style={{
+                  padding: "0.3rem 0.75rem",
+                  fontSize: "0.72rem",
+                  minWidth: 72,
+                  whiteSpace: "nowrap",
+                }}
+                onClick={() => triggerJob("matchday")}
+                disabled={triggering === "matchday"}
+              >
+                {triggering === "matchday" ? "…" : "Run Now"}
               </button>
             </div>
           </div>
