@@ -594,6 +594,34 @@ export function useAdminApi(token: string | null) {
           body: JSON.stringify({ reason }),
         }),
 
+      // ── Duels (challenges) ──────────────────────────────────────────────
+      /**
+       * Read-only. `stuck` narrows to duels stranded on a cancelled market —
+       * both wagers debited, nothing left to settle or refund them.
+       */
+      getDuels: (params?: {
+        search?: string
+        status?: string
+        stuck?: boolean
+        marketId?: string
+        userId?: string
+        page?: number
+        limit?: number
+      }) => {
+        const qs = new URLSearchParams()
+        if (params?.search?.trim()) qs.set("search", params.search.trim())
+        // "all" is the server's default; sending it would just be noise.
+        if (params?.status && params.status !== "all")
+          qs.set("status", params.status)
+        if (params?.stuck) qs.set("stuck", "true")
+        if (params?.marketId) qs.set("marketId", params.marketId)
+        if (params?.userId) qs.set("userId", params.userId)
+        if (params?.page) qs.set("page", String(params.page))
+        if (params?.limit) qs.set("limit", String(params.limit))
+        const suffix = qs.toString() ? `?${qs}` : ""
+        return apiFetch(`/admin/challenges${suffix}`)
+      },
+
       // ── Market comments moderation ──────────────────────────────────────
       getComments: (params?: {
         flagged?: boolean

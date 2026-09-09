@@ -21,6 +21,7 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
+  Swords,
   Target,
   TrendingUp,
   Trophy,
@@ -267,6 +268,15 @@ const AdminSidebar: React.FC<SidebarProps> = ({
           >
             <MessageSquare size={20} />
             {!collapsed && <span className="nav-label">Comments</span>}
+          </li>
+          {/* Also a people surface — user vs user, not a market operation. */}
+          <li
+            className={current === "duels" ? "active" : ""}
+            onClick={() => onNavigate("duels")}
+            title={collapsed ? "Duels" : undefined}
+          >
+            <Swords size={20} />
+            {!collapsed && <span className="nav-label">Duels</span>}
           </li>
           <li
             className={current === "keeper" ? "active" : ""}
