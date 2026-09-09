@@ -1,19 +1,26 @@
 import React, { useEffect, useState, useRef } from "react"
 import { useAdminApi } from "../lib/useAdminApi"
 import { UserDossier } from "../components/UserDossier"
+import ConfirmDialog from "../components/ConfirmDialog"
+import { useToast } from "../components/Toast"
 import { Search, X, AlertTriangle, Swords } from "lucide-react"
 
 /**
- * Duels (the `challenges` table), read-only.
+ * Duels (the `challenges` table).
  *
  * Duels were the one product surface with no admin view at all: the money
  * appeared in the ledger as duel_wager / duel_payout rows, but nothing said who
  * challenged whom or how it ended.
  *
- * The reason this page leads with "stuck" is that cancelMarket() never calls
- * settleByMarket(), so a duel on a cancelled market is never settled, expired
- * or refunded — both wagers stay debited with no code path back. Those rows are
- * money the platform is holding that belongs to two users.
+ * The reason this page leads with "stuck" is that cancelMarket() used to refund
+ * positions and dispute bonds without ever settling duels, so a duel on a
+ * cancelled market was never settled, expired or refunded — both wagers stayed
+ * debited with no code path back. cancelMarket now voids them automatically, so
+ * no new ones accumulate; the void action here releases the ones stranded
+ * before that fix and anything that slips past it.
+ *
+ * Void is the only write on this page, and the server will only accept it for a
+ * duel it independently agrees is stuck.
  */
 
 // Mirrored from ChallengeStatus in the backend entity. NOT an enum: the admin
@@ -108,21 +115,30 @@ const DuelsPage: React.FC = () => {
 
   const [dossierUserId, setDossierUserId] = useState<string | null>(null)
 
+  const { notify, ToastContainer } = useToast()
+  const [voidTarget, setVoidTarget] = useState<Duel | null>(null)
+  const [voiding, setVoiding] = useState(false)
+  // Bumped after a successful void so the list and the summary tiles refetch —
+  // the stuck count in the header has to move with the row.
+  const [refreshKey, setRefreshKey] = useState(0)
+
   // useAdminApi returns a new object every render, so depending on it directly
   // would re-fire the effect forever. The house workaround is a stable ref.
   const getDuelsRef = useRef(api.getDuels)
   useEffect(() => {
     getDuelsRef.current = api.getDuels
   })
+  const voidDuelRef = useRef(api.voidDuel)
+  useEffect(() => {
+    voidDuelRef.current = api.voidDuel
+  })
 
   useEffect(() => {
     let cancelled = false
     // Raising the in-flight flag as the request starts is the point of the
-    // flag; the rule's concern (cascading renders) does not apply to a single
-    // boolean that settles in .finally(). UserManagement does exactly this —
-    // it escapes the rule only because its 1000-line body defeats the
-    // analysis, not because it is written differently.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // flag; react-hooks/set-state-in-effect's concern (cascading renders) does
+    // not apply to a single boolean that settles in .finally(). UserManagement
+    // does exactly this.
     setFetching(true)
 
     getDuelsRef
@@ -159,7 +175,7 @@ const DuelsPage: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [search, statusFilter, stuckOnly, page])
+  }, [search, statusFilter, stuckOnly, page, refreshKey])
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -168,6 +184,35 @@ const DuelsPage: React.FC = () => {
     }, 400)
     return () => clearTimeout(t)
   }, [searchInput])
+
+  /**
+   * Release both wagers. The server re-checks that the duel is stuck and claims
+   * the row before paying, so a double-click cannot refund twice — the second
+   * request comes back as an error rather than a second payment.
+   */
+  const doVoid = async (duel: Duel) => {
+    setVoiding(true)
+    try {
+      const res = (await voidDuelRef.current(duel.id)) as {
+        refundedTotal: number
+      }
+      notify(
+        "success",
+        res.refundedTotal > 0
+          ? `Duel voided — ${fmtMoney(res.refundedTotal, duel.currency)} returned to the players.`
+          : "Duel voided. It carried no wager, so no money moved."
+      )
+      setRefreshKey((k) => k + 1)
+    } catch (e: unknown) {
+      notify(
+        "error",
+        `Could not void duel: ${e instanceof Error ? e.message : String(e)}`
+      )
+    } finally {
+      setVoiding(false)
+      setVoidTarget(null)
+    }
+  }
 
   const hasFilters = !!search.trim() || statusFilter !== "all" || stuckOnly
 
@@ -493,6 +538,7 @@ const DuelsPage: React.FC = () => {
                   <th style={thStyle}>Card</th>
                   <th style={thStyle}>Status</th>
                   <th style={thStyle}>Created</th>
+                  <th style={{ ...thStyle, textAlign: "right" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -612,6 +658,33 @@ const DuelsPage: React.FC = () => {
                         </div>
                       )}
                     </td>
+
+                    {/* Only stuck duels can be voided — a healthy one is a live
+                        contest between two people and is not ours to end. */}
+                    <td style={{ ...tdStyle, textAlign: "right" }}>
+                      {d.stuck ? (
+                        <button
+                          onClick={() => setVoidTarget(d)}
+                          disabled={voiding}
+                          style={{
+                            padding: "5px 10px",
+                            fontSize: "0.75rem",
+                            borderRadius: 8,
+                            border: "1px solid hsl(var(--destructive))",
+                            background: "transparent",
+                            color: "hsl(var(--destructive))",
+                            cursor: voiding ? "default" : "pointer",
+                            fontFamily: "inherit",
+                            whiteSpace: "nowrap",
+                            opacity: voiding ? 0.5 : 1,
+                          }}
+                        >
+                          Void &amp; refund
+                        </button>
+                      ) : (
+                        <span style={muted}>—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -712,8 +785,56 @@ const DuelsPage: React.FC = () => {
         userId={dossierUserId}
         onClose={() => setDossierUserId(null)}
       />
+
+      {/* Name the players and the exact amounts before the click — the
+          CancelMarketModal precedent. This is real money leaving the platform
+          and it cannot be undone from the admin app. */}
+      {voidTarget && (
+        <ConfirmDialog
+          title="Void this duel and refund both players?"
+          variant="danger"
+          confirmLabel="Void & refund"
+          loading={voiding}
+          message={voidSummary(voidTarget)}
+          onConfirm={() => doVoid(voidTarget)}
+          onClose={() => setVoidTarget(null)}
+        />
+      )}
+
+      {ToastContainer}
     </div>
   )
+}
+
+/** What the admin is about to hand back, and to whom. */
+function voidSummary(d: Duel): string {
+  const wager = Number(d.wagerAmount) || 0
+  const lines = [
+    `Market: ${d.market?.title ?? "(deleted market)"}`,
+    `Market status: ${d.market?.status ?? "unknown"}`,
+    "",
+  ]
+  if (wager > 0) {
+    lines.push(
+      `${partyName(d.creator)} gets back ${fmtMoney(wager, d.currency)}`
+    )
+    lines.push(
+      d.joiner
+        ? `${partyName(d.joiner)} gets back ${fmtMoney(wager, d.currency)}`
+        : "No opponent joined — only the creator is refunded."
+    )
+    lines.push("")
+    // Not d.pot — that always assumes two sides. An unjoined duel only ever
+    // took one wager, so only one comes back.
+    lines.push(
+      `Total returned: ${fmtMoney(wager * (d.joiner ? 2 : 1), d.currency)}`
+    )
+  } else {
+    lines.push("This duel carried no wager, so no money will move.")
+  }
+  lines.push("")
+  lines.push("The duel is marked void. This cannot be undone here.")
+  return lines.join("\n")
 }
 
 /**

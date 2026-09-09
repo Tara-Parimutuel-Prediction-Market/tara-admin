@@ -622,6 +622,16 @@ export function useAdminApi(token: string | null) {
         return apiFetch(`/admin/challenges${suffix}`)
       },
 
+      /**
+       * Call a stuck duel off and hand both players their wager back.
+       *
+       * The server refuses anything it does not consider stuck, and refuses a
+       * duel that was already settled — so this cannot kill a live contest or
+       * pay a refund twice.
+       */
+      voidDuel: (id: string) =>
+        apiFetch(`/admin/challenges/${id}/void`, { method: "POST" }),
+
       // ── Market comments moderation ──────────────────────────────────────
       getComments: (params?: {
         flagged?: boolean
